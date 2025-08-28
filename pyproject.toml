@@ -1,0 +1,56 @@
+[project]
+name = "satellite-object-detection"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "ipywidgets>=8.1.7",
+    "jupyterlab>=4.4.6",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+    "ruff>=0.12.11",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "B",      # flake8-bugbear
+    "C4",     # Helps you write better list/set/dict comprehensions.
+    "E",      # pycodestyle errors
+    "FA",     # Verifies files use from __future__ import annotations if a type is used in the module that can be rewritten using PEP 563.
+    "F",      # pyflakes
+    "G",      # Better usage of built-in logging
+    "I",      # isort - Import sorting
+    "LOG",    # Checks for issues using the standard library logging module.
+    "PL",     # pylint
+    "PYI",    # Linting rules for type annotations.
+    "Q",      # Linting rules for quites
+    "RUF",    # Ruff lint
+    "TCH",    # Move type only imports to type-checking condition.
+    "TID",    # Helps you write tidier imports.
+    "UP",     # pyupgrade
+    "W",      # pycodestyle warnings
+    "SIM",    # flake8-simplify
+]
+
+ignore = [
+    "SIM112",
+    "G004",
+    "PLR2004",
+    "W293",
+    "W291",
+    "PLR0913",
+    "B008"
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
