@@ -7,7 +7,8 @@ Image.MAX_IMAGE_PIXELS = None
 
 def convert_to_jpg(image_path, jpg_path):
     img = Image.open(image_path)
-    img.save(jpg_path)
+    rgb_img = img.convert("RGB")
+    rgb_img.save(jpg_path)
 
 
 def walkdir_and_convert(directory):
