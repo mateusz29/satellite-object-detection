@@ -119,7 +119,7 @@ def walkdir_fair1m_and_convert(path: str) -> None:
 def walkdir_dotav2_and_convert(path: str) -> None:
     dotav2_path = Path(path)
     train_images_path = dotav2_path / "images" / "train"
-    train_labels_path = dotav2_path / "lables" / "train_original"
+    train_labels_path = dotav2_path / "labels" / "train_original"
     val_images_path = dotav2_path / "images" / "val"
     val_labels_path = dotav2_path / "labels" / "val_original"
 
