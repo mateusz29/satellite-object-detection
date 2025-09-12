@@ -46,6 +46,29 @@ DOTAV2_CLASSES = {
     "ship": 5,
 }
 
+DIORR_CLASSES = {
+    "Airplane": 0,
+    "Airport": 1,
+    "Baseball field": 2,
+    "Basketball court": 3,
+    "Bridge": 4,
+    "Chimney": 5,
+    "Dam": 6,
+    "Expressway service area": 7,
+    "Expressway toll station": 8,
+    "Golf course": 9,
+    "Ground track field": 10,
+    "Harbor": 11,
+    "Overpass": 12,
+    "Ship": 13,
+    "Stadium": 14,
+    "Storage tank": 15,
+    "Tennis court": 16,
+    "Train station": 17,
+    "Vehicle": 18,
+    "Wind mill": 19,
+}
+
 
 def convert_fair1m_to_yolo(line: str, img_width: int, img_height: int) -> str:
     # YOLO OBB: class_index x1 y1 x2 y2 x3 y3 x4 y4
@@ -86,6 +109,22 @@ def convert_dotav2_to_yolo(line: str, img_width: int, img_height) -> str:
         norm_coords.append(norm_val)
 
     return f"{class_index} " + " ".join(f"{c:.6f}" for c in norm_coords)
+
+
+def convert_dior_to_yolo(line: str) -> str:
+    parts = line.strip().split()
+
+    class_index = int(parts[0])
+
+    mapping = {0: 0, 4: 1, 18: 4, 13: 5}
+    if class_index not in mapping:
+        return ""
+
+    new_class_index = mapping[class_index]
+
+    coords = list(map(float, parts[1:]))
+
+    return f"{new_class_index} " + " ".join(f"{c:.6f}" for c in coords)
 
 
 def walkdir_fair1m_and_convert(path: str) -> None:
@@ -144,6 +183,28 @@ def walkdir_dotav2_and_convert(path: str) -> None:
                         of.write(yolo_line + "\n")
 
 
+def walkdir_dior_and_convert(path: str) -> None:
+    dior_path = Path(path)
+    train_labels_path = dior_path / "train" / "labels"
+    val_labels_path = dior_path / "val" / "labels"
+    test_labels_path = dior_path / "test" / "labels"
+
+    for label_dir in [train_labels_path, val_labels_path, test_labels_path]:
+        for label_file in label_dir.glob("*.txt"):
+            with open(label_file) as f:
+                lines = f.readlines()
+
+            new_lines = []
+            for line in lines:
+                yolo_line = convert_dior_to_yolo(line)
+                if yolo_line:
+                    new_lines.append(yolo_line + "\n")
+
+            with open(label_file, "w") as f:
+                f.writelines(new_lines)
+
+
 if __name__ == "__main__":
     # walkdir_fair1m_and_convert("D:\\stuff\\datasets\\MSGOv1\\FAIR1M")
-    walkdir_dotav2_and_convert("D:\\stuff\\datasets\\MSGOv1\\DOTAv2")
+    # walkdir_dotav2_and_convert("D:\\stuff\\datasets\\MSGOv1\\DOTAv2")
+    walkdir_dior_and_convert("D:\\stuff\\datasets\\MSGOv1\\YOLODIOR-R")
