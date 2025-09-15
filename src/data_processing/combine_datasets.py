@@ -58,28 +58,28 @@ def build_image_to_counts(root_dir: str) -> dict[str, dict[int, int]]:
     root_path = Path(root_dir)
     image_to_counts = {}
 
-    for dataset_path in root_path.iterdir():
-        for split_path in dataset_path.iterdir():
-            if not split_path.is_dir() or split_path.stem == "labels":
-                continue
+    for split_path in root_path.iterdir():
+        if not split_path.is_dir() or split_path.is_file():
+            continue
 
-            images_dir = split_path / "images"
-            labels_dir = split_path / "labels"
+        images_dir = split_path / "images"
+        labels_dir = split_path / "labels"
 
-            for label_file in labels_dir.glob("*.txt"):
-                img_file = images_dir / f"{label_file.stem}.jpg"
+        for label_file in labels_dir.glob("*.txt"):
+            img_file = images_dir / f"{label_file.stem}.jpg"
 
-                counts = {}
-                with open(label_file) as f:
-                    for line in f:
-                        parts = line.strip().split()
-                        if not parts:
-                            continue
-                        class_id = int(parts[0])
-                        counts[class_id] = counts.get(class_id, 0) + 1
+            counts = {}
+            with open(label_file) as f:
+                lines = f.readlines()
 
-                if counts:
-                    image_to_counts[str(img_file)] = counts
+            for line in lines:
+                parts = line.strip().split()
+                if not parts:
+                    continue
+                class_id = int(parts[0])
+                counts[class_id] = counts.get(class_id, 0) + 1
+
+            image_to_counts[str(img_file)] = counts
 
     return image_to_counts
 
