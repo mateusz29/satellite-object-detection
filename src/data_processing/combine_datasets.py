@@ -84,7 +84,39 @@ def build_image_to_counts(root_dir: str) -> dict[str, dict[int, int]]:
     return image_to_counts
 
 
+def rename_files(root_dir: str) -> None:
+    root_path = Path(root_dir)
+
+    for dataset_path in root_path.iterdir():
+        for split_path in dataset_path.iterdir():
+            if not split_path.is_dir() or split_path.stem == "labels":
+                continue
+
+            images_dir = split_path / "images"
+            labels_dir = split_path / "labels"
+
+            dataset_name = split_path.parent.name
+
+            for label_file in labels_dir.glob("*.txt"):
+                if label_file.name.startswith(dataset_name):
+                    continue
+
+                new_label_file_name = f"{dataset_name}_{label_file.name}"
+                new_label_path = labels_dir / new_label_file_name
+                label_file.rename(new_label_path)
+
+                print(f"Renamed {label_file} -> {new_label_path}")
+
+            for img_file in images_dir.glob("*.jpg"):
+                if img_file.name.startswith(dataset_name):
+                    continue
+
+                new_img_file_name = f"{dataset_name}_{img_file.name}"
+                new_img_path = images_dir / new_img_file_name
+                img_file.rename(new_img_path)
+
+                print(f"Renamed {img_file} -> {new_img_path}")
+
+
 if __name__ == "__main__":
-    # delete_some_empty_images("D:\\stuff\\datasets\\MSGOv1\\YOLODIOR-R")
-    image_to_counts = build_image_to_counts("D:\\stuff\\datasets\\MSGOv1")
-    print(image_to_counts)
+    rename_files("D:\\stuff\\datasets\\MSGOv1")
