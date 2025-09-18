@@ -1,6 +1,10 @@
+import json
+from collections import defaultdict
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -68,6 +72,17 @@ DIORR_CLASSES = {
     "Vehicle": 18,
     "Wind mill": 19,
 }
+
+MSGO_CLASSES = {
+    "Plane": 0,
+    "Bridge": 1,
+    "Intersection": 2,
+    "Roundabout": 3,
+    "Vehicle": 4,
+    "Ship": 5,
+}
+
+MSGO_CLASSES_REVERSED = {v: k for k, v in MSGO_CLASSES.items()}
 
 
 def convert_fair1m_to_yolo(line: str, img_width: int, img_height: int) -> str:
@@ -204,7 +219,186 @@ def walkdir_dior_and_convert(path: str) -> None:
                 f.writelines(new_lines)
 
 
+def yolo_obb_to_coco(
+    yolo_coords_norm: list[float], img_width: int, img_height: int
+) -> tuple[list[float], list[float], float]:
+    points_norm = np.array(yolo_coords_norm).reshape(4, 2)
+    points_abs = points_norm * np.array([img_width, img_height])
+    coco_segmentation = [round(coord, 2) for corner in points_abs for coord in corner]
+
+    x_min, y_min = np.min(points_abs, axis=0)
+    x_max, y_max = np.max(points_abs, axis=0)
+
+    coco_bbox = [
+        round(float(x_min), 2),
+        round(float(y_min), 2),
+        round(float(x_max - x_min), 2),
+        round(float(y_max - y_min), 2),
+    ]
+
+    x = points_abs[:, 0]
+    y = points_abs[:, 1]
+    area = 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+    return coco_segmentation, coco_bbox, round(float(area), 2)
+
+
+def create_master_coco_json(root_dir: str) -> None:
+    coco_data = {
+        "info": {"description": "Pre-sliced dataset"},
+        "licenses": [],
+        "categories": [
+            {"id": cid, "name": cname, "supercategory": "object"} for cid, cname in MSGO_CLASSES_REVERSED.items()
+        ],
+        "images": [],
+        "annotations": [],
+    }
+
+    root_path = Path(root_dir)
+    image_id_counter, annotation_id_counter = 1, 1
+    skipped_annotations_count = 0
+
+    images_dir = root_path / "images"
+    labels_dir = root_path / "labels"
+
+    label_files = labels_dir.glob("*.txt")
+
+    for label_file in tqdm(label_files, desc="Processing"):
+        img_file = images_dir / f"{label_file.stem}.jpg"
+
+        with Image.open(img_file) as img:
+            img_width, img_height = img.size
+
+        image_info = {
+            "id": image_id_counter,
+            "file_name": img_file.relative_to(root_path).as_posix(),
+            "width": img_width,
+            "height": img_height,
+        }
+        coco_data["images"].append(image_info)
+
+        with open(label_file) as f:
+            lines = f.readlines()
+
+        for line_num, line in enumerate(lines, 1):
+            parts = line.strip().split()
+
+            if len(parts) != 9:
+                continue
+
+            class_id = int(parts[0])
+            yolo_obb_data = [float(p) for p in parts[1:]]
+
+            segmentation, bbox, area = yolo_obb_to_coco(yolo_obb_data, img_width, img_height)
+
+            reason = ""
+            if bbox[2] <= 0 or bbox[3] <= 0 or area <= 1:
+                skipped_annotations_count += 1
+                print(f"\nFile: {label_file.name}")
+                print(f"Line in File: {line_num}")
+                print(f"Reason: {reason}")
+                print(f"Bbox [x,y,w,h]: {bbox}")
+                print(f"Area: {area}")
+                print(f"Segmentation: {segmentation}")
+                continue
+
+            annotation_info = {
+                "id": annotation_id_counter,
+                "image_id": image_id_counter,
+                "category_id": class_id,
+                "bbox": bbox,
+                "segmentation": [segmentation],
+                "area": area,
+                "iscrowd": 0,
+            }
+            coco_data["annotations"].append(annotation_info)
+            annotation_id_counter += 1
+
+        image_id_counter += 1
+
+    print(f"\nProcessed {image_id_counter - 1} images and {annotation_id_counter - 1} annotations.")
+    print(f"Skipped {skipped_annotations_count} annotations.")
+
+    ouput_json_path = root_path / "master_annotations.json"
+    with open(ouput_json_path, "w") as f:
+        json.dump(coco_data, f, indent=4)
+
+
+def coco_to_yolo_obb(split_dir: str):
+    split_path = Path(split_dir)
+    json_path = split_path / "sliced_annotations.json_coco.json"
+    labels_path = split_path / "labels"
+
+    labels_path.mkdir(parents=True, exist_ok=True)
+    with open(json_path) as f:
+        coco_data = json.load(f)
+
+    annotations_by_image_id = defaultdict(list)
+    for ann in coco_data["annotations"]:
+        annotations_by_image_id[ann["image_id"]].append(ann)
+
+    files_with_annotations = 0
+    empty_files_created = 0
+
+    for image_info in tqdm(coco_data["images"], desc=f"Creating YOLO files for '{split_path.name}'"):
+        image_id = image_info["id"]
+
+        label_filename = Path(image_info["file_name"]).stem + ".txt"
+        output_path = labels_path / label_filename
+
+        yolo_lines = []
+
+        if image_id in annotations_by_image_id:
+            img_width = image_info["width"]
+            img_height = image_info["height"]
+
+            for ann in annotations_by_image_id[image_id]:
+                class_id = ann["category_id"]
+                abs_coords = ann["segmentation"][0]
+
+                if len(abs_coords) != 8:
+                    continue
+
+                normalized_coords = []
+                for i, coord in enumerate(abs_coords):
+                    if i % 2 == 0:
+                        normalized_coords.append(coord / img_width)
+                    else:
+                        normalized_coords.append(coord / img_height)
+
+                yolo_coords_str = " ".join([f"{c:.6f}" for c in normalized_coords])
+                yolo_lines.append(f"{class_id} {yolo_coords_str}")
+
+            if yolo_lines:
+                files_with_annotations += 1
+            else:
+                empty_files_created += 1
+        else:
+            empty_files_created += 1
+
+        with open(output_path, "w") as f:
+            f.write("\n".join(yolo_lines))
+
+    total_images = len(coco_data["images"])
+    print(f"\n--- Conversion Summary for '{split_path.name}' ---")
+    print(f"Total images processed: {total_images}")
+    print(f"Label files with annotations: {files_with_annotations}")
+    print(f"Empty label files created (no annotations): {empty_files_created}")
+    print(f"All label files saved to: {labels_path}")
+
+
+def create_label_files_from_master_json(root_dir: str):
+    sliced_root_path = Path(root_dir)
+
+    splits_to_process = [d for d in sliced_root_path.iterdir() if d.is_dir()]
+
+    for split_dir in splits_to_process:
+        print("\n" + "=" * 60)
+        print(f"Processing split: {split_dir.name}")
+        print("=" * 60)
+        coco_to_yolo_obb(str(split_dir))
+
+
 if __name__ == "__main__":
-    # walkdir_fair1m_and_convert("D:\\stuff\\datasets\\MSGOv1\\FAIR1M")
-    # walkdir_dotav2_and_convert("D:\\stuff\\datasets\\MSGOv1\\DOTAv2")
-    walkdir_dior_and_convert("D:\\stuff\\datasets\\MSGOv1\\YOLODIOR-R")
+    # create_master_coco_json("D:\\stuff\\datasets\\MSGOv1")
+    create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv1\\sliced")
