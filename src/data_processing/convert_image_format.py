@@ -1,31 +1,37 @@
-import os
+from pathlib import Path
 
 from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
 
 
-def convert_to_jpg(image_path, jpg_path):
+def to_jpg(image_path: Path) -> None:
+    file_name = image_path.stem + ".jpg"
+    jpg_path = image_path.parent / file_name
+
     img = Image.open(image_path)
     rgb_img = img.convert("RGB")
     rgb_img.save(jpg_path)
 
 
-def walkdir_and_convert(directory):
-    for file in os.listdir(directory):
-        if file.endswith(".png") or file.endswith(".bmp"):
-            image_path = os.path.join(directory, file)
-            jpg_path = os.path.splitext(image_path)[0] + ".jpg"
+def convert_images(root_dir: str) -> None:
+    root_path = Path(root_dir)
 
-            convert_to_jpg(image_path, jpg_path)
+    for split_path in root_path.iterdir():
+        images_dir = split_path / "images"
 
-            os.remove(image_path)
+        for img_file in images_dir.iterdir():
+            if img_file.suffix == ".png":
+                to_jpg(img_file)
+
+                try:
+                    img_file.unlink()
+                except Exception as e:
+                    print(f"Failed to delete image {img_file}: {e}")
 
 
 def main():
-    folders = ["D:\\stuff\\datasets\\ShipRSImageNet\\images"]
-    for folder in folders:
-        walkdir_and_convert(folder)
+    convert_images("D:\\stuff\\datasets\\MSGOv1\\sliced")
 
 
 if __name__ == "__main__":
