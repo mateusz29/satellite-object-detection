@@ -16,6 +16,7 @@ dependencies = [
     "scikit-multilearn>=0.2.0",
     "torch>=2.8.0",
     "tqdm>=4.67.1",
+    "ultralytics>=8.3.202",
 ]
 
 [dependency-groups]
