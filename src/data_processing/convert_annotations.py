@@ -387,7 +387,44 @@ def yolo_obb_to_coco(
     return coco_segmentation, coco_bbox, round(float(area), 2)
 
 
-def create_master_coco_json(root_dir: str) -> None:
+def yolo_hbb_to_coco(
+    yolo_coords_norm: list[float], img_width: int, img_height: int
+) -> tuple[list[float], list[float], float]:
+    x_center_norm, y_center_norm, width_norm, height_norm = yolo_coords_norm
+
+    width_abs = width_norm * img_width
+    height_abs = height_norm * img_height
+    x_center_abs = x_center_norm * img_width
+    y_center_abs = y_center_norm * img_height
+
+    x_min = x_center_abs - (width_abs / 2)
+    y_min = y_center_abs - (height_abs / 2)
+
+    coco_bbox = [
+        round(x_min, 2),
+        round(y_min, 2),
+        round(width_abs, 2),
+        round(height_abs, 2),
+    ]
+
+    x_max, y_max = x_min + width_abs, y_min + height_abs
+    coco_segmentation = [
+        round(x_min, 2),
+        round(y_min, 2),
+        round(x_max, 2),
+        round(y_min, 2),
+        round(x_max, 2),
+        round(y_max, 2),
+        round(x_min, 2),
+        round(y_max, 2),
+    ]
+
+    area = width_abs * height_abs
+
+    return coco_segmentation, coco_bbox, round(area, 2)
+
+
+def create_master_coco_json_from_obb(root_dir: str) -> None:
     coco_data = {
         "info": {"description": "Pre-sliced dataset"},
         "licenses": [],
@@ -405,7 +442,7 @@ def create_master_coco_json(root_dir: str) -> None:
     images_dir = root_path / "images"
     labels_dir = root_path / "labels"
 
-    label_files = labels_dir.glob("*.txt")
+    label_files = list(labels_dir.glob("*.txt"))
 
     for label_file in tqdm(label_files, desc="Processing"):
         img_file = images_dir / f"{label_file.stem}.jpg"
@@ -434,6 +471,87 @@ def create_master_coco_json(root_dir: str) -> None:
             yolo_obb_data = [float(p) for p in parts[1:]]
 
             segmentation, bbox, area = yolo_obb_to_coco(yolo_obb_data, img_width, img_height)
+
+            reason = ""
+            if bbox[2] <= 0 or bbox[3] <= 0 or area <= 1:
+                skipped_annotations_count += 1
+                print(f"\nFile: {label_file.name}")
+                print(f"Line in File: {line_num}")
+                print(f"Reason: {reason}")
+                print(f"Bbox [x,y,w,h]: {bbox}")
+                print(f"Area: {area}")
+                print(f"Segmentation: {segmentation}")
+                continue
+
+            annotation_info = {
+                "id": annotation_id_counter,
+                "image_id": image_id_counter,
+                "category_id": class_id,
+                "bbox": bbox,
+                "segmentation": [segmentation],
+                "area": area,
+                "iscrowd": 0,
+            }
+            coco_data["annotations"].append(annotation_info)
+            annotation_id_counter += 1
+
+        image_id_counter += 1
+
+    print(f"\nProcessed {image_id_counter - 1} images and {annotation_id_counter - 1} annotations.")
+    print(f"Skipped {skipped_annotations_count} annotations.")
+
+    ouput_json_path = root_path / "master_annotations.json"
+    with open(ouput_json_path, "w") as f:
+        json.dump(coco_data, f, indent=4)
+
+
+def create_master_coco_json_from_hbb(root_dir: str) -> None:
+    coco_data = {
+        "info": {"description": "Pre-sliced dataset"},
+        "licenses": [],
+        "categories": [
+            {"id": cid, "name": cname, "supercategory": "object"} for cid, cname in MSGO_CLASSES_REVERSED.items()
+        ],
+        "images": [],
+        "annotations": [],
+    }
+
+    root_path = Path(root_dir)
+    image_id_counter, annotation_id_counter = 1, 1
+    skipped_annotations_count = 0
+
+    images_dir = root_path / "images"
+    labels_dir = root_path / "labels"
+
+    label_files = list(labels_dir.glob("*.txt"))
+
+    for label_file in tqdm(label_files, desc="Processing"):
+        img_file = images_dir / f"{label_file.stem}.jpg"
+
+        with Image.open(img_file) as img:
+            img_width, img_height = img.size
+
+        image_info = {
+            "id": image_id_counter,
+            "file_name": img_file.relative_to(root_path).as_posix(),
+            "width": img_width,
+            "height": img_height,
+        }
+        coco_data["images"].append(image_info)
+
+        with open(label_file) as f:
+            lines = f.readlines()
+
+        for line_num, line in enumerate(lines, 1):
+            parts = line.strip().split()
+
+            if len(parts) != 9:
+                continue
+
+            class_id = int(parts[0])
+            yolo_obb_data = [float(p) for p in parts[1:]]
+
+            segmentation, bbox, area = yolo_hbb_to_coco(yolo_obb_data, img_width, img_height)
 
             reason = ""
             if bbox[2] <= 0 or bbox[3] <= 0 or area <= 1:
@@ -548,4 +666,5 @@ if __name__ == "__main__":
     # create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv1\\sliced")
     # convert_fair1m("D:\\stuff\\datasets\\MSGOv2\\FAIR1M")
     # convert_dotav2("D:\\stuff\\datasets\\MSGOv2\\DOTAv2")
-    convert_dior("D:\\stuff\\datasets\\MSGOv2\\DIOR")
+    # convert_dior("D:\\stuff\\datasets\\MSGOv2\\DIOR")
+    create_master_coco_json_from_hbb("D:\\stuff\\datasets\\MSGOv2")

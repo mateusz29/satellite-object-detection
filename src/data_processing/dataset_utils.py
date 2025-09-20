@@ -6,26 +6,27 @@ from tqdm import tqdm
 def get_empty_image_paths(root_path: Path) -> list[Path]:
     results = []
 
-    for split_path in root_path.iterdir():
-        images_dir = split_path / "images"
-        labels_dir = split_path / "labels"
+    images_dir = root_path / "images"
+    labels_dir = root_path / "labels"
 
-        for img_file in images_dir.iterdir():
-            img_name = img_file.stem
-            label_file = labels_dir / f"{img_name}.txt"
+    for img_file in images_dir.iterdir():
+        img_name = img_file.stem
+        label_file = labels_dir / f"{img_name}.txt"
 
-            if label_file.stat().st_size == 0:
-                results.append(img_file)
+        if label_file.stat().st_size == 0:
+            results.append(img_file)
 
     return results
 
 
 def delete_empty_images(root_dir: str) -> None:
     root_path = Path(root_dir)
+
+    labels_dir = root_path / "labels"
+
     empty_image_paths = get_empty_image_paths(root_path)
 
-    for img_file in empty_image_paths:
-        labels_dir = img_file.parent.parent / "labels"
+    for img_file in tqdm(empty_image_paths, desc="Deleting empty images and labels..."):
         label_file = labels_dir / f"{img_file.stem}.txt"
 
         try:
@@ -99,6 +100,6 @@ def move_png_files(source_folder: str) -> None:
 
 
 if __name__ == "__main__":
-    rename_files("D:\\stuff\\datasets\\MSGOv2")
+    # rename_files("D:\\stuff\\datasets\\MSGOv2")
     # move_png_files("D:\\stuff\\datasets\\MSGOv1\\sliced\\val")
-    # delete_empty_images("D:\\stuff\\datasets\\MSGOv1\\sliced")
+    delete_empty_images("D:\\stuff\\datasets\\MSGOv2")
