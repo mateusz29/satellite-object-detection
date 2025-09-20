@@ -346,22 +346,16 @@ def convert_dotav2(root_dir: str) -> None:
 def convert_dior(root_dir: str) -> None:
     dior_path = Path(root_dir)
 
-    images_dir = dior_path / "images"
     labels_dir = dior_path / "labels"
 
     label_files = list(labels_dir.iterdir())
     for label_file in tqdm(label_files, desc="Converting DIOR labels..."):
-        img_file = images_dir / f"{label_file.stem}.jpg"
-
-        with Image.open(img_file) as img:
-            w, h = img.size
-
         with open(label_file) as f:
             lines = f.readlines()
 
         new_label_content = []
         for line in lines:
-            hbb_line = dior_label_to_hbb(line, w, h)
+            hbb_line = dior_label_to_hbb(line)
             if hbb_line:
                 new_label_content.append(hbb_line)
 
@@ -553,5 +547,5 @@ if __name__ == "__main__":
     # create_master_coco_json("D:\\stuff\\datasets\\MSGOv1")
     # create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv1\\sliced")
     # convert_fair1m("D:\\stuff\\datasets\\MSGOv2\\FAIR1M")
-    convert_dotav2("D:\\stuff\\datasets\\MSGOv2\\DOTAv2")
+    # convert_dotav2("D:\\stuff\\datasets\\MSGOv2\\DOTAv2")
     convert_dior("D:\\stuff\\datasets\\MSGOv2\\DIOR")
