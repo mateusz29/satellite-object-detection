@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 
 from tqdm import tqdm
@@ -39,6 +40,36 @@ def delete_empty_images(root_dir: str) -> None:
                 label_file.unlink()
             except Exception as e:
                 print(f"Failed to delete label {label_file}: {e}")
+
+
+def delete_some_empty_images(root_dir: str, keep_percentage: float = 0.15) -> None:
+    root_path = Path(root_dir)
+
+    for split_path in root_path.iterdir():
+        if not split_path.is_dir():
+            continue
+
+        labels_dir = split_path / "labels"
+
+        empty_image_paths = get_empty_image_paths(split_path)
+        num_empty = len(empty_image_paths)
+        num_to_keep = round(num_empty * keep_percentage)
+
+        if num_to_keep >= num_empty:
+            print(f"[{split_path.name}] Found {num_empty} empty images. Keeping all.")
+            continue
+
+        num_to_delete = num_empty - num_to_keep
+        images_to_delete = random.sample(empty_image_paths, num_to_delete)
+
+        for img_file in tqdm(images_to_delete, desc=f"Deleting empty images and labels from {split_path.name}"):
+            label_file = labels_dir / f"{img_file.stem}.txt"
+
+            try:
+                img_file.unlink()
+                label_file.unlink()
+            except Exception as e:
+                print(f"Failed to delete image {img_file.name}: {e}")
 
 
 def rename_files(root_dir: str) -> None:
@@ -95,11 +126,14 @@ def move_png_files(source_folder: str) -> None:
     dest_path = source_path / "images"
     dest_path.mkdir(parents=True, exist_ok=True)
 
-    for png_file in source_path.glob("*.png"):
+    png_files = list(source_path.glob("*.png"))
+    for png_file in tqdm(png_files, desc="Moving files..."):
         png_file.rename(dest_path / png_file.name)
 
 
 if __name__ == "__main__":
     # rename_files("D:\\stuff\\datasets\\MSGOv2")
-    # move_png_files("D:\\stuff\\datasets\\MSGOv1\\sliced\\val")
-    delete_empty_images("D:\\stuff\\datasets\\MSGOv2")
+    # move_png_files("D:\\stuff\\datasets\\MSGOv2\\sliced\\test")
+    # move_png_files("D:\\stuff\\datasets\\MSGOv2\\sliced\\train")
+    # delete_empty_images("D:\\stuff\\datasets\\MSGOv2")
+    delete_some_empty_images("D:\\stuff\\datasets\\MSGOv2\\sliced")
