@@ -85,7 +85,7 @@ MSGO_CLASSES = {
 MSGO_CLASSES_REVERSED = {v: k for k, v in MSGO_CLASSES.items()}
 
 
-def convert_fair1m_to_yolo(line: str, img_width: int, img_height: int) -> str:
+def convert_fair1m_to_yolo_obb(line: str, img_width: int, img_height: int) -> str:
     # YOLO OBB: class_index x1 y1 x2 y2 x3 y3 x4 y4
     # FAIR1M label: 1275 458 1494 88 1417 43 1199 414 Liquid-Cargo-Ship 1
     parts = line.strip().split()
@@ -106,7 +106,7 @@ def convert_fair1m_to_yolo(line: str, img_width: int, img_height: int) -> str:
     return f"{class_index} " + " ".join(f"{c:.6f}" for c in norm_coords)
 
 
-def convert_dotav2_to_yolo(line: str, img_width: int, img_height) -> str:
+def convert_dotav2_to_yolo_obb(line: str, img_width: int, img_height: int) -> str:
     # DOTAv2 label: 1076.0 2972.0 1082.0 2976.0 1072.0 2991.0 1065.0 2985.0 small-vehicle 0
     parts = line.strip().split()
 
@@ -126,7 +126,7 @@ def convert_dotav2_to_yolo(line: str, img_width: int, img_height) -> str:
     return f"{class_index} " + " ".join(f"{c:.6f}" for c in norm_coords)
 
 
-def convert_dior_to_yolo(line: str) -> str:
+def convert_dior_to_yolo_obb(line: str) -> str:
     parts = line.strip().split()
 
     class_index = int(parts[0])
@@ -165,7 +165,7 @@ def walkdir_fair1m_and_convert(path: str) -> None:
 
             with open(label_file) as lf, open(out_file, "w") as of:
                 for line in lf:
-                    yolo_line = convert_fair1m_to_yolo(line, w, h)
+                    yolo_line = convert_fair1m_to_yolo_obb(line, w, h)
                     if yolo_line:
                         of.write(yolo_line + "\n")
 
@@ -193,7 +193,7 @@ def walkdir_dotav2_and_convert(path: str) -> None:
 
             with open(label_file) as lf, open(out_file, "w") as of:
                 for line in lf:
-                    yolo_line = convert_dotav2_to_yolo(line, w, h)
+                    yolo_line = convert_dotav2_to_yolo_obb(line, w, h)
                     if yolo_line:
                         of.write(yolo_line + "\n")
 
@@ -211,12 +211,162 @@ def walkdir_dior_and_convert(path: str) -> None:
 
             new_lines = []
             for line in lines:
-                yolo_line = convert_dior_to_yolo(line)
+                yolo_line = convert_dior_to_yolo_obb(line)
                 if yolo_line:
                     new_lines.append(yolo_line + "\n")
 
             with open(label_file, "w") as f:
                 f.writelines(new_lines)
+
+
+def fair1m_label_to_hbb(line: str, img_width: int, img_height: int) -> str:
+    # 1275 458 1494 88 1417 43 1199 414 Liquid-Cargo-Ship 1
+    # class x_center y_center width height
+    parts = line.strip().split()
+
+    class_name = parts[-2]
+    class_index = FAIR1M_CLASSES.get(class_name, -1)
+
+    if class_index == -1:
+        return ""
+
+    poly = np.array(parts[:-2], dtype=np.float32).reshape(4, 2)
+
+    xmin = np.min(poly[:, 0])
+    xmax = np.max(poly[:, 0])
+    ymin = np.min(poly[:, 1])
+    ymax = np.max(poly[:, 1])
+
+    x_center = (xmin + xmax) / 2 / img_width
+    y_center = (ymin + ymax) / 2 / img_height
+    width = (xmax - xmin) / img_width
+    height = (ymax - ymin) / img_height
+
+    return f"{class_index} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"
+
+
+def dotav2_label_to_hbb(line: str, img_width: int, img_height: int) -> str:
+    # 506.0 201.0 481.0 199.0 477.0 83.0 501.0 83.0 large-vehicle 0
+    # class x_center y_center width height
+    parts = line.strip().split()
+
+    class_name = parts[-2]
+    class_index = DOTAV2_CLASSES.get(class_name, -1)
+
+    if class_index == -1:
+        return ""
+
+    poly = np.array(parts[:-2], dtype=np.float32).reshape(4, 2)
+
+    xmin = np.min(poly[:, 0])
+    xmax = np.max(poly[:, 0])
+    ymin = np.min(poly[:, 1])
+    ymax = np.max(poly[:, 1])
+
+    x_center = (xmin + xmax) / 2 / img_width
+    y_center = (ymin + ymax) / 2 / img_height
+    width = (xmax - xmin) / img_width
+    height = (ymax - ymin) / img_height
+
+    return f"{class_index} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"
+
+
+def dior_label_to_hbb(line: str) -> str:
+    # 5 0.0775 0.32 0.0225 0.0125
+    # class x_center y_center width height
+    parts = line.strip().split()
+
+    class_index = int(parts[0])
+
+    mapping = {0: 0, 4: 1, 18: 4, 13: 5}
+    if class_index not in mapping:
+        return ""
+
+    new_class_index = mapping[class_index]
+
+    coords = list(map(float, parts[1:]))
+
+    return f"{new_class_index} " + " ".join(f"{c:.6f}" for c in coords)
+
+
+def convert_fair1m(root_dir: str) -> None:
+    fair1m_path = Path(root_dir)
+
+    for split_path in fair1m_path.iterdir():
+        images_dir = split_path / "images"
+        labels_dir = split_path / "labelTxt"
+
+        label_files = list(labels_dir.iterdir())
+        for label_file in tqdm(label_files, desc="Converting FAIR1M labels..."):
+            img_file = images_dir / f"{label_file.stem}.jpg"
+
+            with Image.open(img_file) as img:
+                w, h = img.size
+
+            with open(label_file) as f:
+                lines = f.readlines()
+
+            new_label_content = []
+            for line in lines:
+                hbb_line = fair1m_label_to_hbb(line, w, h)
+                if hbb_line:
+                    new_label_content.append(hbb_line)
+
+            with open(label_file, "w") as f:
+                f.write("\n".join(new_label_content))
+
+
+def convert_dotav2(root_dir: str) -> None:
+    dotav2_path = Path(root_dir)
+
+    for split_path in dotav2_path.iterdir():
+        images_dir = split_path / "images"
+        labels_dir = split_path / "labels"
+
+        label_files = list(labels_dir.iterdir())
+        for label_file in tqdm(label_files, desc="Converting DOTAv2 labels..."):
+            img_file = images_dir / f"{label_file.stem}.jpg"
+
+            with Image.open(img_file) as img:
+                w, h = img.size
+
+            with open(label_file) as f:
+                lines = f.readlines()
+
+            new_label_content = []
+            for line in lines:
+                hbb_line = dotav2_label_to_hbb(line, w, h)
+                if hbb_line:
+                    new_label_content.append(hbb_line)
+
+            with open(label_file, "w") as f:
+                f.write("\n".join(new_label_content))
+
+
+def convert_dior(root_dir: str) -> None:
+    dior_path = Path(root_dir)
+
+    images_dir = dior_path / "images"
+    labels_dir = dior_path / "labels"
+
+    label_files = list(labels_dir.iterdir())
+    for label_file in tqdm(label_files, desc="Converting DIOR labels..."):
+        img_file = images_dir / f"{label_file.stem}.jpg"
+
+        with Image.open(img_file) as img:
+            w, h = img.size
+
+        with open(label_file) as f:
+            lines = f.readlines()
+
+        new_label_content = []
+        for line in lines:
+            hbb_line = dior_label_to_hbb(line, w, h)
+            if hbb_line:
+                new_label_content.append(hbb_line)
+
+        with open(label_file, "w") as f:
+            f.write("\n".join(new_label_content))
 
 
 def yolo_obb_to_coco(
@@ -401,4 +551,7 @@ def create_label_files_from_master_json(root_dir: str):
 
 if __name__ == "__main__":
     # create_master_coco_json("D:\\stuff\\datasets\\MSGOv1")
-    create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv1\\sliced")
+    # create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv1\\sliced")
+    # convert_fair1m("D:\\stuff\\datasets\\MSGOv2\\FAIR1M")
+    convert_dotav2("D:\\stuff\\datasets\\MSGOv2\\DOTAv2")
+    convert_dior("D:\\stuff\\datasets\\MSGOv2\\DIOR")
