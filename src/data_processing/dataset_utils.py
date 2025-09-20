@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tqdm import tqdm
+
 
 def get_empty_image_paths(root_path: Path) -> list[Path]:
     results = []
@@ -45,29 +47,46 @@ def rename_files(root_dir: str) -> None:
         if not dataset_path.is_dir():
             continue
 
-        for split_path in dataset_path.iterdir():
-            if not split_path.is_dir():
-                continue
+        dataset_name = dataset_path.stem
 
-            images_dir = split_path / "images"
-            labels_dir = split_path / "labels"
+        if dataset_name == "DIOR":
+            images_dir = dataset_path / "images"
+            labels_dir = dataset_path / "labels"
 
-            dataset_name = split_path.parent.name
-            split_name = split_path.name
-
-            for label_file in labels_dir.glob("*.txt"):
-                new_label_file_name = f"{dataset_name}_{split_name}_{label_file.name}"
+            label_files = list(labels_dir.glob("*.txt"))
+            for label_file in tqdm(label_files, desc=f"Renaming labels from {dataset_name}..."):
+                new_label_file_name = f"{dataset_name}_{label_file.name}"
                 new_label_path = labels_dir / new_label_file_name
                 label_file.rename(new_label_path)
 
-                print(f"Renamed {label_file} -> {new_label_path}")
-
-            for img_file in images_dir.glob("*.jpg"):
-                new_img_file_name = f"{dataset_name}_{split_name}_{img_file.name}"
+            img_files = list(images_dir.glob("*.jpg"))
+            for img_file in tqdm(img_files, desc=f"Renaming images from {dataset_name}..."):
+                new_img_file_name = f"{dataset_name}_{img_file.name}"
                 new_img_path = images_dir / new_img_file_name
                 img_file.rename(new_img_path)
 
-                print(f"Renamed {img_file} -> {new_img_path}")
+        else:
+            for split_path in dataset_path.iterdir():
+                if not split_path.is_dir():
+                    continue
+
+                images_dir = split_path / "images"
+                labels_dir = split_path / "labels"
+
+                dataset_name = split_path.parent.name
+                split_name = split_path.name
+
+                label_files = list(labels_dir.glob("*.txt"))
+                for label_file in tqdm(label_files, desc=f"Renaming labels from {dataset_name} {split_name}..."):
+                    new_label_file_name = f"{dataset_name}_{split_name}_{label_file.name}"
+                    new_label_path = labels_dir / new_label_file_name
+                    label_file.rename(new_label_path)
+
+                img_files = list(images_dir.glob("*.jpg"))
+                for img_file in tqdm(img_files, desc=f"Renaming images from {dataset_name} {split_name}..."):
+                    new_img_file_name = f"{dataset_name}_{split_name}_{img_file.name}"
+                    new_img_path = images_dir / new_img_file_name
+                    img_file.rename(new_img_path)
 
 
 def move_png_files(source_folder: str) -> None:
@@ -80,6 +99,6 @@ def move_png_files(source_folder: str) -> None:
 
 
 if __name__ == "__main__":
-    # rename_files("D:\\stuff\\datasets\\MSGOv1")
+    rename_files("D:\\stuff\\datasets\\MSGOv2")
     # move_png_files("D:\\stuff\\datasets\\MSGOv1\\sliced\\val")
-    delete_empty_images("D:\\stuff\\datasets\\MSGOv1\\sliced")
+    # delete_empty_images("D:\\stuff\\datasets\\MSGOv1\\sliced")
