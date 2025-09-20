@@ -545,7 +545,7 @@ def create_master_coco_json_from_hbb(root_dir: str) -> None:
         for line_num, line in enumerate(lines, 1):
             parts = line.strip().split()
 
-            if len(parts) != 9:
+            if len(parts) != 5:
                 continue
 
             class_id = int(parts[0])
@@ -649,6 +649,47 @@ def coco_to_yolo_obb(split_dir: str):
     print(f"All label files saved to: {labels_path}")
 
 
+def coco_to_yolo_hbb(split_dir: str):
+    split_path = Path(split_dir)
+    json_path = split_path / "sliced_annotations.json_coco.json"
+    labels_path = split_path / "labels"
+
+    labels_path.mkdir(parents=True, exist_ok=True)
+    with open(json_path) as f:
+        coco_data = json.load(f)
+
+    annotations_by_image_id = defaultdict(list)
+    for ann in coco_data["annotations"]:
+        annotations_by_image_id[ann["image_id"]].append(ann)
+
+    for image_info in tqdm(coco_data["images"], desc=f"Creating YOLO HBB files for '{split_path.name}'"):
+        image_id = image_info["id"]
+        img_width = image_info["width"]
+        img_height = image_info["height"]
+
+        label_filename = Path(image_info["file_name"]).stem + ".txt"
+        output_path = labels_path / label_filename
+
+        yolo_lines = []
+        if image_id in annotations_by_image_id:
+            for ann in annotations_by_image_id[image_id]:
+                class_id = ann["category_id"]
+
+                x_min, y_min, width, height = ann["bbox"]
+
+                x_center_norm = (x_min + width / 2) / img_width
+                y_center_norm = (y_min + height / 2) / img_height
+                width_norm = width / img_width
+                height_norm = height / img_height
+
+                yolo_lines.append(
+                    f"{class_id} {x_center_norm:.6f} {y_center_norm:.6f} {width_norm:.6f} {height_norm:.6f}"
+                )
+
+        with open(output_path, "w") as f:
+            f.write("\n".join(yolo_lines))
+
+
 def create_label_files_from_master_json(root_dir: str):
     sliced_root_path = Path(root_dir)
 
@@ -658,13 +699,14 @@ def create_label_files_from_master_json(root_dir: str):
         print("\n" + "=" * 60)
         print(f"Processing split: {split_dir.name}")
         print("=" * 60)
-        coco_to_yolo_obb(str(split_dir))
+        # coco_to_yolo_obb(str(split_dir))
+        coco_to_yolo_hbb(str(split_dir))
 
 
 if __name__ == "__main__":
     # create_master_coco_json("D:\\stuff\\datasets\\MSGOv1")
-    # create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv1\\sliced")
+    create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv2\\sliced")
     # convert_fair1m("D:\\stuff\\datasets\\MSGOv2\\FAIR1M")
     # convert_dotav2("D:\\stuff\\datasets\\MSGOv2\\DOTAv2")
     # convert_dior("D:\\stuff\\datasets\\MSGOv2\\DIOR")
-    create_master_coco_json_from_hbb("D:\\stuff\\datasets\\MSGOv2")
+    # create_master_coco_json_from_hbb("D:\\stuff\\datasets\\MSGOv2")
