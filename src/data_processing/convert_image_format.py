@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from PIL import Image
+from tqdm import tqdm
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -20,7 +21,8 @@ def convert_images(root_dir: str) -> None:
     for split_path in root_path.iterdir():
         images_dir = split_path / "images"
 
-        for img_file in images_dir.iterdir():
+        img_files = list(images_dir.iterdir())
+        for img_file in tqdm(img_files, desc=f"Converting images in {split_path}"):
             if img_file.suffix == ".png":
                 to_jpg(img_file)
 
@@ -31,7 +33,7 @@ def convert_images(root_dir: str) -> None:
 
 
 def main():
-    convert_images("D:\\stuff\\datasets\\MSGOv1\\sliced")
+    convert_images("D:\\stuff\\datasets\\MSGOv2\\sliced")
 
 
 if __name__ == "__main__":

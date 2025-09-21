@@ -1,0 +1,18 @@
+#The dataset configuration file for MSGOv1.
+path: MSGOv2/
+
+train: train/images
+val: val/images
+test: test/images
+
+#The number of classes in the dataset.
+nc: 6
+
+#The names of the classes in the dataset.
+names:
+  0: Plane
+  1: Bridge
+  2: Intersection
+  3: Roundabout
+  4: Vehicle
+  5: Ship

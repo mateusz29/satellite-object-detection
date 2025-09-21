@@ -11,3 +11,5 @@ wheels/
 
 runs/
 *.pt
+MSGOv1/
+MSGOv2/
