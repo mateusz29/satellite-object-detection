@@ -1,27 +1,23 @@
 from ultralytics import YOLO
 
-DATASET_YAML = "dataset/MSGOv1.yaml"
+DATASET_YAML = "dataset/MSGOv2.yaml"
 
 
 def train_yolo_model():
-    MODEL_NAME = "pretrained_models/yolo11n-obb.pt"
+    MODEL_NAME = "pretrained_models/yolo11n.pt"
 
-    EPOCHS = 100
+    EPOCHS = 3
     BATCH_SIZE = 16
     IMAGE_SIZE = 800
     PATIENCE = 10
 
     model = YOLO(MODEL_NAME)
 
-    print("Start model training ...")
-
     _ = model.train(data=DATASET_YAML, imgsz=IMAGE_SIZE, epochs=EPOCHS, batch=BATCH_SIZE, patience=PATIENCE)
-
-    print("Training complete.")
 
 
 def test_yolo_model():
-    model = YOLO("runs/obb/train/weights/best.pt")
+    model = YOLO("runs/detect/train2/weights/best.pt")
 
     _ = model.val(data=DATASET_YAML, split="test", name="test")
 
