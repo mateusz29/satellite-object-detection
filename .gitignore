@@ -10,6 +10,9 @@ wheels/
 .env
 
 runs/
+output/
 *.pt
+*.pth
 MSGOv1/
 MSGOv2/
+MSGOv2_small/

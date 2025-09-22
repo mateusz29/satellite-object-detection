@@ -1,10 +1,10 @@
 from ultralytics import YOLO
 
-DATASET_YAML = "dataset/MSGOv2.yaml"
+DATASET_YAML = "../../dataset/MSGOv2_small.yaml"
 
 
 def train_yolo_model():
-    MODEL_NAME = "pretrained_models/yolo11n.pt"
+    MODEL_NAME = "../../pretrained_models/yolo11n.pt"
 
     EPOCHS = 3
     BATCH_SIZE = 16
@@ -17,7 +17,7 @@ def train_yolo_model():
 
 
 def test_yolo_model():
-    model = YOLO("runs/detect/train2/weights/best.pt")
+    model = YOLO("runs/detect/train3/weights/best.pt")
 
     _ = model.val(data=DATASET_YAML, split="test", name="test")
 

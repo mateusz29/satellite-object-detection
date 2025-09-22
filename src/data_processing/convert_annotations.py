@@ -500,7 +500,7 @@ def create_master_coco_json_from_obb(root_dir: str) -> None:
     print(f"\nProcessed {image_id_counter - 1} images and {annotation_id_counter - 1} annotations.")
     print(f"Skipped {skipped_annotations_count} annotations.")
 
-    ouput_json_path = root_path / "master_annotations.json"
+    ouput_json_path = root_path / "master_annotations.coco.json"
     with open(ouput_json_path, "w") as f:
         json.dump(coco_data, f, indent=4)
 
@@ -581,14 +581,14 @@ def create_master_coco_json_from_hbb(root_dir: str) -> None:
     print(f"\nProcessed {image_id_counter - 1} images and {annotation_id_counter - 1} annotations.")
     print(f"Skipped {skipped_annotations_count} annotations.")
 
-    ouput_json_path = root_path / "master_annotations.json"
+    ouput_json_path = root_path / "master_annotations.coco.json"
     with open(ouput_json_path, "w") as f:
         json.dump(coco_data, f, indent=4)
 
 
 def coco_to_yolo_obb(split_dir: str):
     split_path = Path(split_dir)
-    json_path = split_path / "sliced_annotations.json_coco.json"
+    json_path = split_path / "sliced_annotations.coco.json"
     labels_path = split_path / "labels"
 
     labels_path.mkdir(parents=True, exist_ok=True)
@@ -651,7 +651,7 @@ def coco_to_yolo_obb(split_dir: str):
 
 def coco_to_yolo_hbb(split_dir: str):
     split_path = Path(split_dir)
-    json_path = split_path / "sliced_annotations.json_coco.json"
+    json_path = split_path / "sliced_annotations.coco.json"
     labels_path = split_path / "labels"
 
     labels_path.mkdir(parents=True, exist_ok=True)
@@ -705,8 +705,11 @@ def create_label_files_from_master_json(root_dir: str):
 
 if __name__ == "__main__":
     # create_master_coco_json("D:\\stuff\\datasets\\MSGOv1")
-    create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv2\\sliced")
+    # create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv2\\sliced")
     # convert_fair1m("D:\\stuff\\datasets\\MSGOv2\\FAIR1M")
     # convert_dotav2("D:\\stuff\\datasets\\MSGOv2\\DOTAv2")
     # convert_dior("D:\\stuff\\datasets\\MSGOv2\\DIOR")
     # create_master_coco_json_from_hbb("D:\\stuff\\datasets\\MSGOv2")
+    create_master_coco_json_from_hbb("D:\\studia\\magisterka\\satellite-object-detection\\dataset\\MSGOv2_small\\valid")
+    create_master_coco_json_from_hbb("D:\\studia\\magisterka\\satellite-object-detection\\dataset\\MSGOv2_small\\test")
+    create_master_coco_json_from_hbb("D:\\studia\\magisterka\\satellite-object-detection\\dataset\\MSGOv2_small\\train")
