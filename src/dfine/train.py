@@ -70,7 +70,6 @@ def train_dfine_model():
     validation_dataset = MSGODataset(dataset["valid"], image_processor, transform=validation_transform)
     test_dataset = MSGODataset(dataset["test"], image_processor, transform=validation_transform)
 
-
     label2id = {
         "Plane": 0,
         "Bridge": 1,
@@ -80,7 +79,7 @@ def train_dfine_model():
         "Ship": 5,
     }
     id2label = {v: k for k, v in label2id.items()}
-    
+
     eval_compute_metrics_fn = MAPEvaluator(image_processor=image_processor, threshold=0.01, id2label=id2label)
 
     model = AutoModelForObjectDetection.from_pretrained(

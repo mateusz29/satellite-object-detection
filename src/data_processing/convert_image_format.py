@@ -33,7 +33,7 @@ def convert_images(root_dir: str) -> None:
 
 
 def main():
-    convert_images("D:\\stuff\\datasets\\MSGOv2\\sliced")
+    convert_images("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced")
 
 
 if __name__ == "__main__":
