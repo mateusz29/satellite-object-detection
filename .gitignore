@@ -9,6 +9,7 @@ wheels/
 .venv
 .env
 
+d-fine*/
 runs/
 output/
 *.pt
