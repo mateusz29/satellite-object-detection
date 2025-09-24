@@ -1,13 +1,13 @@
 from ultralytics import YOLO
 
-DATASET_YAML = "dataset/MSGOv2.yaml"
+DATASET_YAML = "../../dataset/MSGOv2_small.yaml"
 
 
 def train_yolo_model():
-    MODEL_NAME = "pretrained_models/yolo11n.pt"
+    MODEL_NAME = "../../pretrained_models/yolo12n.pt"
 
-    EPOCHS = 3
-    BATCH_SIZE = 16
+    EPOCHS = 2
+    BATCH_SIZE = 8
     IMAGE_SIZE = 800
     PATIENCE = 10
 
@@ -17,11 +17,11 @@ def train_yolo_model():
 
 
 def test_yolo_model():
-    model = YOLO("runs/detect/train2/weights/best.pt")
+    model = YOLO("runs/detect/train8/weights/best.pt")
 
     _ = model.val(data=DATASET_YAML, split="test", name="test")
 
 
 if __name__ == "__main__":
-    train_yolo_model()
+    # train_yolo_model()
     test_yolo_model()

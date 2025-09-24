@@ -14,7 +14,7 @@ def convert_filenames_json(input_json_path, output_json_path, from_ext=".bmp", t
                 changes_count += 1
 
     with open(output_json_path, "w") as f:
-        json.dump(data, f, indent=4)
+        json.dump(data, f)
 
     print("Successfully processed file.")
     print(f"Changed {changes_count} filenames from '{from_ext}' to '{to_ext}'.")

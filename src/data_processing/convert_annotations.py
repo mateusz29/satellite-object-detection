@@ -126,7 +126,7 @@ def convert_dotav2_to_yolo_obb(line: str, img_width: int, img_height: int) -> st
     return f"{class_index} " + " ".join(f"{c:.6f}" for c in norm_coords)
 
 
-def convert_dior_to_yolo_obb(line: str) -> str:
+def convert_diorr_to_yolo_obb(line: str) -> str:
     parts = line.strip().split()
 
     class_index = int(parts[0])
@@ -211,7 +211,7 @@ def walkdir_dior_and_convert(path: str) -> None:
 
             new_lines = []
             for line in lines:
-                yolo_line = convert_dior_to_yolo_obb(line)
+                yolo_line = convert_diorr_to_yolo_obb(line)
                 if yolo_line:
                     new_lines.append(yolo_line + "\n")
 
@@ -278,7 +278,7 @@ def dior_label_to_hbb(line: str) -> str:
 
     class_index = int(parts[0])
 
-    mapping = {0: 0, 4: 1, 18: 4, 13: 5}
+    mapping = {8: 0, 9: 1, 5: 4, 7: 5}
     if class_index not in mapping:
         return ""
 
@@ -424,7 +424,7 @@ def yolo_hbb_to_coco(
     return coco_segmentation, coco_bbox, round(area, 2)
 
 
-def create_master_coco_json_from_obb(root_dir: str) -> None:
+def create_master_coco_json_from_obb(root_dir: str, show_bad_annotations: bool = False) -> None:
     coco_data = {
         "info": {"description": "Pre-sliced dataset"},
         "licenses": [],
@@ -475,12 +475,13 @@ def create_master_coco_json_from_obb(root_dir: str) -> None:
             reason = ""
             if bbox[2] <= 0 or bbox[3] <= 0 or area <= 1:
                 skipped_annotations_count += 1
-                print(f"\nFile: {label_file.name}")
-                print(f"Line in File: {line_num}")
-                print(f"Reason: {reason}")
-                print(f"Bbox [x,y,w,h]: {bbox}")
-                print(f"Area: {area}")
-                print(f"Segmentation: {segmentation}")
+                if show_bad_annotations:
+                    print(f"\nFile: {label_file.name}")
+                    print(f"Line in File: {line_num}")
+                    print(f"Reason: {reason}")
+                    print(f"Bbox [x,y,w,h]: {bbox}")
+                    print(f"Area: {area}")
+                    print(f"Segmentation: {segmentation}")
                 continue
 
             annotation_info = {
@@ -500,14 +501,14 @@ def create_master_coco_json_from_obb(root_dir: str) -> None:
     print(f"\nProcessed {image_id_counter - 1} images and {annotation_id_counter - 1} annotations.")
     print(f"Skipped {skipped_annotations_count} annotations.")
 
-    ouput_json_path = root_path / "master_annotations.json"
+    ouput_json_path = root_path / "master_annotations.coco.json"
     with open(ouput_json_path, "w") as f:
-        json.dump(coco_data, f, indent=4)
+        json.dump(coco_data, f)
 
 
-def create_master_coco_json_from_hbb(root_dir: str) -> None:
+def create_master_coco_json_from_hbb(root_dir: str, show_bad_annotations: bool = False) -> None:
     coco_data = {
-        "info": {"description": "Pre-sliced dataset"},
+        "info": {"description": "Pre-sliced MSGO HBB dataset"},
         "licenses": [],
         "categories": [
             {"id": cid, "name": cname, "supercategory": "object"} for cid, cname in MSGO_CLASSES_REVERSED.items()
@@ -556,12 +557,13 @@ def create_master_coco_json_from_hbb(root_dir: str) -> None:
             reason = ""
             if bbox[2] <= 0 or bbox[3] <= 0 or area <= 1:
                 skipped_annotations_count += 1
-                print(f"\nFile: {label_file.name}")
-                print(f"Line in File: {line_num}")
-                print(f"Reason: {reason}")
-                print(f"Bbox [x,y,w,h]: {bbox}")
-                print(f"Area: {area}")
-                print(f"Segmentation: {segmentation}")
+                if show_bad_annotations:
+                    print(f"\nFile: {label_file.name}")
+                    print(f"Line in File: {line_num}")
+                    print(f"Reason: {reason}")
+                    print(f"Bbox [x,y,w,h]: {bbox}")
+                    print(f"Area: {area}")
+                    print(f"Segmentation: {segmentation}")
                 continue
 
             annotation_info = {
@@ -581,14 +583,13 @@ def create_master_coco_json_from_hbb(root_dir: str) -> None:
     print(f"\nProcessed {image_id_counter - 1} images and {annotation_id_counter - 1} annotations.")
     print(f"Skipped {skipped_annotations_count} annotations.")
 
-    ouput_json_path = root_path / "master_annotations.json"
+    ouput_json_path = root_path / "master_annotations.coco.json"
     with open(ouput_json_path, "w") as f:
-        json.dump(coco_data, f, indent=4)
+        json.dump(coco_data, f)
 
 
-def coco_to_yolo_obb(split_dir: str):
-    split_path = Path(split_dir)
-    json_path = split_path / "sliced_annotations.json_coco.json"
+def coco_to_yolo_obb(split_path: Path):
+    json_path = split_path / "_annotations.coco.json"
     labels_path = split_path / "labels"
 
     labels_path.mkdir(parents=True, exist_ok=True)
@@ -649,9 +650,8 @@ def coco_to_yolo_obb(split_dir: str):
     print(f"All label files saved to: {labels_path}")
 
 
-def coco_to_yolo_hbb(split_dir: str):
-    split_path = Path(split_dir)
-    json_path = split_path / "sliced_annotations.json_coco.json"
+def coco_to_yolo_hbb(split_path: Path):
+    json_path = split_path / "_annotations.coco.json"
     labels_path = split_path / "labels"
 
     labels_path.mkdir(parents=True, exist_ok=True)
@@ -695,18 +695,36 @@ def create_label_files_from_master_json(root_dir: str):
 
     splits_to_process = [d for d in sliced_root_path.iterdir() if d.is_dir()]
 
-    for split_dir in splits_to_process:
-        print("\n" + "=" * 60)
-        print(f"Processing split: {split_dir.name}")
-        print("=" * 60)
-        # coco_to_yolo_obb(str(split_dir))
-        coco_to_yolo_hbb(str(split_dir))
+    for split_path in splits_to_process:
+        print(f"Processing split: {split_path.name}")
+        # coco_to_yolo_obb(split_path)
+        coco_to_yolo_hbb(split_path)
+
+
+def prepend_images_to_filenames(json_path):
+    json_path = Path(json_path)
+
+    with open(json_path) as f:
+        data = json.load(f)
+
+    for img in data.get("images", []):
+        if not img["file_name"].startswith("images/"):
+            img["file_name"] = f"images/{img['file_name']}"
+
+    with open(json_path, "w") as f:
+        json.dump(data, f)
 
 
 if __name__ == "__main__":
     # create_master_coco_json("D:\\stuff\\datasets\\MSGOv1")
-    create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv2\\sliced")
-    # convert_fair1m("D:\\stuff\\datasets\\MSGOv2\\FAIR1M")
-    # convert_dotav2("D:\\stuff\\datasets\\MSGOv2\\DOTAv2")
-    # convert_dior("D:\\stuff\\datasets\\MSGOv2\\DIOR")
-    # create_master_coco_json_from_hbb("D:\\stuff\\datasets\\MSGOv2")
+    # convert_fair1m("D:\\stuff\\datasets\\MSGOv2\\MSGOv2")
+    # convert_dotav2("D:\\stuff\\datasets\\MSGOv2\\MSGOv2")
+    # convert_dior("D:\\stuff\\datasets\\MSGOv2\\MSGOv2")
+
+    # create_master_coco_json_from_hbb("D:\\stuff\\datasets\\MSGOv2\\MSGOv2")
+
+    # prepend_images_to_filenames("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced\\test\\_annotations.coco.json")
+    # prepend_images_to_filenames("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced\\train\\_annotations.coco.json")
+    # prepend_images_to_filenames("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced\\val\\_annotations.coco.json")
+
+    create_label_files_from_master_json("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced")
