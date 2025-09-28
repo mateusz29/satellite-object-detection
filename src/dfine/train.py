@@ -11,7 +11,7 @@ from transformers import AutoImageProcessor, AutoModelForObjectDetection, Traine
 DATASET_LOCATION = "../../dataset/MSGOv2_small"
 MODEL_NAME = "ustc-community/dfine-nano-coco"
 IMAGE_SIZE = 800
-EPOCHS = 2
+EPOCHS = 6
 BATCH_SIZE = 8
 
 
@@ -91,11 +91,11 @@ def train_dfine_model():
 
     training_args = TrainingArguments(
         output_dir="d-fine-n-msgo-finetune-1",
-        num_train_epochs=6,
+        num_train_epochs=EPOCHS,
         max_grad_norm=0.1,
         learning_rate=5e-5,
         warmup_steps=300,
-        per_device_train_batch_size=8,
+        per_device_train_batch_size=BATCH_SIZE,
         dataloader_num_workers=0,
         metric_for_best_model="eval_map",
         greater_is_better=True,
