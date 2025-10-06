@@ -44,7 +44,8 @@ FAIR1M_CLASSES = {
 DOTAV2_CLASSES = {
     "plane": 0,
     "bridge": 1,
-    "roundabout": 3,
+    "airport": 2,
+    "harbror": 3,
     "large-vehicle": 4,
     "small-vehicle": 4,
     "ship": 5,
@@ -76,8 +77,8 @@ DIORR_CLASSES = {
 MSGO_CLASSES = {
     "Plane": 0,
     "Bridge": 1,
-    "Intersection": 2,
-    "Roundabout": 3,
+    "Airport": 2,
+    "Harbor": 3,
     "Vehicle": 4,
     "Ship": 5,
 }
@@ -278,7 +279,7 @@ def dior_label_to_hbb(line: str) -> str:
 
     class_index = int(parts[0])
 
-    mapping = {8: 0, 9: 1, 5: 4, 7: 5}
+    mapping = {8: 0, 9: 1, 5: 4, 7: 5, 18: 2, 6: 3}
     if class_index not in mapping:
         return ""
 
