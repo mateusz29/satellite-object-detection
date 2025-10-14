@@ -1,3 +1,4 @@
+from PIL import Image
 from ultralytics import YOLO
 
 DATASET_YAML = "../../dataset/MSGOv2_small.yaml"
@@ -22,6 +23,19 @@ def test_yolo_model():
     _ = model.val(data=DATASET_YAML, split="test", name="test")
 
 
+def predict():
+    model = YOLO("../../models/yolo12m_best.pt")
+
+    results = model("D:\\stuff\\datasets\\DIOR\\archive\\images\\00008.jpg")
+
+    for _, r in enumerate(results):
+        im_bgr = r.plot(line_width=1, labels=False, conf=False)  # BGR-order numpy array
+        im_rgb = Image.fromarray(im_bgr[..., ::-1])  # RGB-order PIL image
+
+        im_rgb.show()
+
+
 if __name__ == "__main__":
-    # train_yolo_model()
-    test_yolo_model()
+    train_yolo_model()
+    # test_yolo_model()
+    # predict()

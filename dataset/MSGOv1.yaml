@@ -2,7 +2,7 @@
 path: MSGOv1/
 
 train: train/images
-val: val/images
+val: valid/images
 test: test/images
 
 #The number of classes in the dataset.
@@ -12,7 +12,7 @@ nc: 6
 names:
   0: Plane
   1: Bridge
-  2: Intersection
-  3: Roundabout
+  2: Airport
+  3: Harbor
   4: Vehicle
   5: Ship
