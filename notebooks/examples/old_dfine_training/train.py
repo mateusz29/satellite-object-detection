@@ -6,13 +6,19 @@ from coco_dataset_loader import CocoDatasetLoader
 from datasets import DatasetDict
 from map_evaluator import MAPEvaluator
 from msgo_dataset import MSGODataset
-from transformers import AutoImageProcessor, AutoModelForObjectDetection, Trainer, TrainingArguments
+from transformers import (
+    AutoImageProcessor,
+    AutoModelForObjectDetection,
+    EarlyStoppingCallback,
+    Trainer,
+    TrainingArguments,
+)
 
-DATASET_LOCATION = "../../dataset/MSGOv2_small"
-MODEL_NAME = "ustc-community/dfine-nano-coco"
+DATASET_LOCATION = "../../dataset/MSGOv1"
+MODEL_NAME = "ustc-community/dfine-medium-coco"
 IMAGE_SIZE = 800
-EPOCHS = 6
-BATCH_SIZE = 8
+EPOCHS = 100
+BATCH_SIZE = 4
 
 
 def load_dataset() -> DatasetDict:
@@ -73,8 +79,8 @@ def train_dfine_model():
     label2id = {
         "Plane": 0,
         "Bridge": 1,
-        "Intersection": 2,
-        "Roundabout": 3,
+        "Airport": 2,
+        "Harbor": 3,
         "Vehicle": 4,
         "Ship": 5,
     }
@@ -116,6 +122,7 @@ def train_dfine_model():
         processing_class=image_processor,
         data_collator=collate_fn,
         compute_metrics=eval_compute_metrics_fn,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=15)],
     )
 
     trainer.train()

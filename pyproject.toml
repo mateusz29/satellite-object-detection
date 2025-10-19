@@ -50,6 +50,7 @@ exclude = [
     "DFine_finetune_on_a_custom_dataset.ipynb",
     "DFine_inference.ipynb",
     "Fine_tune_RT_DETR_on_a_custom_dataset.ipynb",
+    "custom_d_fine-main"
 ]
 
 [tool.ruff.lint]

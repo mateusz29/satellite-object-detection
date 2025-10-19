@@ -1,4 +1,6 @@
+import csv
 import random
+import shutil
 from pathlib import Path
 
 from tqdm import tqdm
@@ -134,8 +136,41 @@ def move_png_files(source_folder: str) -> None:
         png_file.rename(dest_path / png_file.name)
 
 
+def make_split_csv(root_dir: str):
+    root = Path(root_dir)
+
+    images_dest = root / "images"
+    labels_dest = root / "labels"
+    images_dest.mkdir(exist_ok=True)
+    labels_dest.mkdir(exist_ok=True)
+
+    for split in ["train", "test", "valid"]:
+        split_path = root / split
+        images_path = split_path / "images"
+        labels_path = split_path / "labels"
+
+        csv_name = "val.csv" if split == "valid" else f"{split}.csv"
+        csv_path = root / csv_name
+
+        image_files = list(images_path.glob("*.jpg"))
+
+        with csv_path.open("w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            for img_file in tqdm(image_files, desc=f"Copying files and creating csv for {split}"):
+                writer.writerow([img_file.name])
+
+                label_file = labels_path / f"{img_file.stem}.txt"
+                if label_file.exists():
+                    shutil.copy2(label_file, labels_dest / label_file.name)
+                else:
+                    print(f"Missing label for {img_file.name}")
+
+                shutil.copy2(img_file, images_dest / img_file.name)
+
+
 if __name__ == "__main__":
     # rename_files("D:\\stuff\\datasets\\MSGOv2\\MSGOv2")
     # move_png_files("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced\\val")
     # delete_empty_images("D:\\stuff\\datasets\\MSGOv2\\MSGOv2")
-    delete_some_empty_images("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced")
+    # delete_some_empty_images("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced")
+    make_split_csv("D:\\studia\\magisterka\\satellite-object-detection\\dataset\\MSGOv1")
