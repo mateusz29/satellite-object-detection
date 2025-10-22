@@ -2,6 +2,7 @@ import math
 import time
 from copy import deepcopy
 from pathlib import Path
+import pprint
 from shutil import rmtree
 from typing import Dict, List, Tuple
 
@@ -69,6 +70,7 @@ class Trainer:
         self.use_wandb = cfg.train.use_wandb
         self.label_to_name = cfg.train.label_to_name
         self.num_labels = len(cfg.train.label_to_name)
+        self.only_eval = cfg.train.only_eval
 
         self.debug_img_path = Path(self.cfg.train.debug_img_path)
         self.eval_preds_path = Path(self.cfg.train.eval_preds_path)
@@ -271,6 +273,7 @@ class Trainer:
         conf_thresh: float,
         iou_thresh: float,
         extended: bool,
+        label_to_name,
         path_to_save=None,
         mode=None,
     ):
@@ -280,7 +283,7 @@ class Trainer:
             conf_thresh=conf_thresh,
             iou_thresh=iou_thresh,
         )
-        metrics = validator.compute_metrics(extended=extended)
+        metrics = validator.compute_metrics(extended=extended, label_to_name=label_to_name)
         if path_to_save:  # val and test
             validator.save_plots(path_to_save / "plots" / mode)
         return metrics
@@ -301,6 +304,7 @@ class Trainer:
             conf_thresh,
             iou_thresh,
             extended=extended,
+            label_to_name=self.label_to_name,
             path_to_save=path_to_save,
             mode=mode,
         )
@@ -458,61 +462,67 @@ class Trainer:
 def main(cfg: DictConfig) -> None:
     trainer = Trainer(cfg)
 
-    try:
+    if not cfg.train.only_eval:
+        try:
+            t_start = time.time()
+            trainer.train()
+        except KeyboardInterrupt:
+            logger.warning("Interrupted by user")
+        except Exception as e:
+            logger.error(e)
+    else:
+        logger.info("Skipping training and running evaluation only.")
         t_start = time.time()
-        trainer.train()
-    except KeyboardInterrupt:
-        logger.warning("Interrupted by user")
-    except Exception as e:
-        logger.error(e)
-    finally:
-        logger.info("Evaluating best model...")
-        model = build_model(
-            cfg.model_name,
-            len(cfg.train.label_to_name),
-            cfg.train.device,
-            img_size=cfg.train.img_size,
-        )
-        model.load_state_dict(
-            torch.load(Path(cfg.train.path_to_save) / "model.pt", weights_only=True)
-        )
-        if trainer.ema_model:
-            trainer.ema_model.model = model
-        else:
-            trainer.model = model
 
-        val_metrics = trainer.evaluate(
-            val_loader=trainer.val_loader,
+    logger.info("Evaluating best model...")
+    model = build_model(
+        cfg.model_name,
+        len(cfg.train.label_to_name),
+        cfg.train.device,
+        img_size=cfg.train.img_size,
+    )
+    model.load_state_dict(
+        torch.load(Path(cfg.train.path_to_save) / "model.pt", weights_only=True)
+    )
+    if trainer.ema_model:
+        trainer.ema_model.model = model
+    else:
+        trainer.model = model
+
+    val_metrics = trainer.evaluate(
+        val_loader=trainer.val_loader,
+        conf_thresh=trainer.conf_thresh,
+        iou_thresh=trainer.iou_thresh,
+        path_to_save=Path(cfg.train.path_to_save),
+        extended=True,
+        mode="val",
+    )
+    pprint(val_metrics)
+    if cfg.train.use_wandb:
+        wandb_logger(None, val_metrics, epoch=cfg.train.epochs + 1, mode="val")
+
+    test_metrics = {}
+    if trainer.test_loader:
+        test_metrics = trainer.evaluate(
+            val_loader=trainer.test_loader,
             conf_thresh=trainer.conf_thresh,
             iou_thresh=trainer.iou_thresh,
             path_to_save=Path(cfg.train.path_to_save),
             extended=True,
-            mode="val",
+            mode="test",
         )
+        pprint(test_metrics)
         if cfg.train.use_wandb:
-            wandb_logger(None, val_metrics, epoch=cfg.train.epochs + 1, mode="val")
+            wandb_logger(None, test_metrics, epoch=-1, mode="test")
 
-        test_metrics = {}
-        if trainer.test_loader:
-            test_metrics = trainer.evaluate(
-                val_loader=trainer.test_loader,
-                conf_thresh=trainer.conf_thresh,
-                iou_thresh=trainer.iou_thresh,
-                path_to_save=Path(cfg.train.path_to_save),
-                extended=True,
-                mode="test",
-            )
-            if cfg.train.use_wandb:
-                wandb_logger(None, test_metrics, epoch=-1, mode="test")
-
-        log_metrics_locally(
-            all_metrics={"val": val_metrics, "test": test_metrics},
-            path_to_save=Path(cfg.train.path_to_save),
-            epoch=0,
-            extended=True,
-            label_to_name=cfg.train.label_to_name,
-        )
-        logger.info(f"Full training time: {(time.time() - t_start) / 60 / 60:.2f} hours")
+    log_metrics_locally(
+        all_metrics={"val": val_metrics, "test": test_metrics},
+        path_to_save=Path(cfg.train.path_to_save),
+        epoch=0,
+        extended=True,
+        label_to_name=cfg.train.label_to_name,
+    )
+    logger.info(f"Full training time: {(time.time() - t_start) / 60 / 60:.2f} hours")
 
 
 if __name__ == "__main__":

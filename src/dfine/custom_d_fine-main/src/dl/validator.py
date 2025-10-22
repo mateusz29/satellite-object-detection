@@ -38,15 +38,34 @@ class Validator:
         self.torch_metric.update(preds, gt)
         self.conf_matrix = None
 
-    def compute_metrics(self, extended=False) -> Dict[str, float]:
+    def compute_metrics(self, label_to_name, extended=False) -> Dict[str, float]:
         self.torch_metrics = self.torch_metric.compute()
         filtered_preds = filter_preds(copy.deepcopy(self.preds), self.conf_thresh)
 
         metrics = self._compute_main_metrics(filtered_preds)
         metrics["mAP_50"] = self.torch_metrics["map_50"].item()
         metrics["mAP_50_95"] = self.torch_metrics["map"].item()
-        if not extended:
+        if extended:
+            class_metrics = {}
+            map_metric = MeanAveragePrecision(class_metrics=True)
+            map_metric.update(self.preds, self.gt)
+            per_class_map = map_metric.compute()
+
+            for cls_id, cls_name in label_to_name.items():
+                class_metrics[cls_name] = {
+                    "precision": metrics["extended_metrics"].get(f"precision_{cls_id}", None),
+                    "recall": metrics["extended_metrics"].get(f"recall_{cls_id}", None),
+                    "iou": metrics["extended_metrics"].get(f"iou_{cls_id}", None),
+                    "f1": metrics["extended_metrics"].get(f"f1_{cls_id}", None),
+                    "mAP_50": per_class_map["map_50_per_class"][cls_id].item(),
+                    "mAP_50_95": per_class_map["map_per_class"][cls_id].item(),
+                }
+
+            metrics["class_metrics"] = class_metrics
+
+        else:
             metrics.pop("extended_metrics", None)
+
         return metrics
 
     def _compute_main_metrics(self, preds):

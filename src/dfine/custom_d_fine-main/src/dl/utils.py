@@ -73,16 +73,25 @@ def log_metrics_locally(
     metrics_df = pd.DataFrame.from_dict(all_metrics, orient="index")
     metrics_df = metrics_df.round(4)
     if extended:
-        extended_metrics = metrics_df["extended_metrics"].map(
-            lambda d: rename_metric_keys(d, label_to_name)
-        )
-        extended_metrics = pd.DataFrame.from_records(
-            extended_metrics.tolist(), index=metrics_df.index
-        ).round(4)
+        if "extended_metrics" in metrics_df.columns:
+            extended_metrics = metrics_df["extended_metrics"].map(
+                lambda d: rename_metric_keys(d, label_to_name)
+            )
+            extended_metrics_df = pd.DataFrame.from_records(
+                extended_metrics.tolist(), index=metrics_df.index
+            ).round(4)
 
-    metrics_df = metrics_df[
-        ["mAP_50", "f1", "precision", "recall", "iou", "mAP_50_95", "TPs", "FPs", "FNs"]
-    ]
+        if "class_metrics" in metrics_df.columns:
+            class_metrics = metrics_df["class_metrics"].map(lambda d: d)
+            class_metrics_df = pd.concat(
+                {idx: pd.DataFrame.from_dict(val, orient="index") for idx, val in class_metrics.items()},
+                axis=0,
+            )
+            class_metrics_df.index.names = ["mode", "class_name"]
+            class_metrics_df = class_metrics_df.round(4)
+
+    summary_cols = ["mAP_50", "f1", "precision", "recall", "iou", "mAP_50_95", "TPs", "FPs", "FNs"]
+    metrics_df = metrics_df[[col for col in summary_cols if col in metrics_df.columns]]
 
     tabulated_data = tabulate(metrics_df, headers="keys", tablefmt="pretty", showindex=True)
     if epoch:
@@ -93,8 +102,11 @@ def log_metrics_locally(
     if path_to_save:
         metrics_df.to_csv(path_to_save / "metrics.csv")
 
-        if extended:
-            extended_metrics.to_csv(path_to_save / "extended_metrics.csv")
+        if extended_metrics_df is not None:
+            extended_metrics_df.to_csv(path_to_save / "extended_metrics.csv")
+
+        if class_metrics_df is not None:
+            class_metrics_df.to_csv(path_to_save / "class_metrics.csv")
 
 
 def save_metrics(train_metrics, metrics, loss, epoch, path_to_save, use_wandb) -> None:
