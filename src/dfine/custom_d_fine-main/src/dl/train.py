@@ -414,6 +414,7 @@ class Trainer:
                             len(self.train_loader),
                         ),
                         vram=f"{get_vram_usage()}%",
+                        es=f"{self.early_stopping_steps}/{self.early_stopping}",
                     )
 
             # Final update for any leftover gradients from an incomplete accumulation step
