@@ -2,7 +2,7 @@ import math
 import time
 from copy import deepcopy
 from pathlib import Path
-import pprint
+from pprint import pprint
 from shutil import rmtree
 from typing import Dict, List, Tuple
 
