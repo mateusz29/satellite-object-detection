@@ -173,4 +173,4 @@ if __name__ == "__main__":
     # move_png_files("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced\\val")
     # delete_empty_images("D:\\stuff\\datasets\\MSGOv2\\MSGOv2")
     # delete_some_empty_images("D:\\stuff\\datasets\\MSGOv2\\MSGOv2\\sliced")
-    make_split_csv("D:\\studia\\magisterka\\satellite-object-detection\\dataset\\MSGOv1")
+    make_split_csv("D:\\stuff\\datasets\\MSGOv1\\MSGOv1")
