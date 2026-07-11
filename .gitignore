@@ -5,6 +5,8 @@ build/
 dist/
 wheels/
 *.egg-info
+trained_models/
+old_MSGOv1/
 
 .venv
 .env

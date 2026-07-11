@@ -1,5 +1,5 @@
 project_name: satellite_object_detection # for wandb
-exp_name: baseline_m # experiment name
+exp_name: dfine_medium # experiment name
 
 exp: ${exp_name}_${now_dir}
 
@@ -31,7 +31,7 @@ train:
     4: Vehicle
     5: Ship
   use_one_class: False
-  only_eval: true
+  only_eval: false
 
   img_size: [800, 800] # (h, w)
   keep_ratio: False # image aspect ratio, if True - image will be padded

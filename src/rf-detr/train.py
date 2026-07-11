@@ -5,13 +5,13 @@ import matplotlib
 import supervision as sv
 import torch
 from PIL import Image
-from rfdetr import RFDETRNano
+from rfdetr import RFDETRNano  # RFDETRSmall, RFDETRMedium, RFDETRLarge
 from supervision.metrics import MeanAveragePrecision
 from tqdm import tqdm
 
 matplotlib.use("Agg")
 
-DATASET_LOCATION = "../../dataset/MSGOv2_small"
+DATASET_LOCATION = "../../dataset/MSGOv1"
 
 
 def cleanup_gpu_memory(obj=None, verbose: bool = False):

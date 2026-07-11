@@ -1,13 +1,13 @@
 from PIL import Image
 from ultralytics import YOLO
 
-DATASET_YAML = "../../dataset/MSGOv2_small.yaml"
+DATASET_YAML = "../../dataset/MSGOv1.yaml"
 
 
 def train_yolo_model():
     MODEL_NAME = "../../pretrained_models/yolo12n.pt"
 
-    EPOCHS = 2
+    EPOCHS = 100
     BATCH_SIZE = 8
     IMAGE_SIZE = 800
     PATIENCE = 10
