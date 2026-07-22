@@ -45,7 +45,7 @@ DOTAV2_CLASSES = {
     "plane": 0,
     "bridge": 1,
     "airport": 2,
-    "harbror": 3,
+    "harbor": 3,
     "large-vehicle": 4,
     "small-vehicle": 4,
     "ship": 5,

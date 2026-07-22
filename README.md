@@ -1,27 +1,51 @@
 # Satellite Object Detection
 
-A Master's project for training, comparing, and deploying state-of-the-art deep learning models for object detection in satellite imagery. This framework includes a complete pipeline from data preprocessing to model evaluation and final deployment in a QGIS plugin.
-
-## About The Project
-
-The primary goal of this research is to evaluate and compare the performance of several modern object detection architectures on the complex task of identifying objects in satellite imagery. The project handles the entire machine learning lifecycle:
-
--   **Data Unification:** Combining multiple public datasets (DIOR, DOTA, FAIR1M) into a single, cohesive dataset.
--   **Data Preprocessing:** Handling massive satellite images through a robust tiling mechanism with overlap.
--   **Model Training:** Implementing training scripts for multiple SOTA models that support Horizontal Bounding Boxes (HBB).
--   **Comparative Analysis:** Evaluating models based on standard metrics like mAP to determine their strengths and weaknesses for this specific domain.
--   **Deployment:** Integrating the best-performing models into a custom QGIS plugin for practical use by GIS analysts.
-
+This repository contains the dataset preprocessing, training, and evaluation scripts for a Master's thesis comparing object detection architectures on satellite imagery. The project evaluates three modern model families: YOLOv12, RF-DETR, and D-FINE across multiple size variants.
 
 ## Dataset
 
-The dataset used in this project is a custom compilation of several public benchmarks:
--   DIOR
--   DOTA-v2.0
--   FAIR1M
+A custom dataset was created by combining images from two public benchmarks: DIOR and DOTA-v2.0.
 
-The raw data was processed through a pipeline involving class unification, stratified splitting (to ensure class balance), and slicing of large images into `800x800` tiles with overlap to create a model-ready dataset.
+- **Class Mapping:** Bounding boxes from the source datasets were standardized to Horizontal Bounding Boxes (HBB) across 6 target classes: Plane, Bridge, Airport, Harbor, Vehicle, and Ship. Small and large vehicle categories from the source datasets were merged into a single Vehicle class.
+- **Tiling:** Large satellite images were sliced into 800x800 pixel tiles with a 20% overlap.
+- **Filtering:** Tiles containing no annotations were pruned, retaining a fixed ratio of 5% background tiles to limit negative samples.
+- **Splitting:** Stratified multi-label split was applied to balance class distributions across training, validation, and test sets. Annotations were formatted in both COCO JSON and YOLO TXT.
+
+## Hardware Environments
+
+Models were trained and evaluated on two workstation configurations differing in GPU hardware:
+
+- **Workstation 1:** NVIDIA RTX 6000 Ada Generation (48 GB VRAM)
+- **Workstation 2:** NVIDIA RTX 6000 Blackwell (96 GB VRAM)
 
 ## Results
 
-This section will be updated with the final results of the model comparison. Key metrics include mAP50, mAP50-95, inference speed, and parameter count.
+Performance was evaluated on the test split using standard COCO mAP metrics.
+
+### Workstation 1
+
+| Architecture | Variant | mAP50 | mAP50-95 |
+|:---|:---:|:---:|:---:|
+| **YOLOv12** | M | 0.886 | 0.650 |
+| **YOLOv12** | L | 0.889 | 0.655 |
+| **YOLOv12** | XL | 0.892 | 0.664 |
+| **RF-DETR** | L | 0.820 | 0.596 |
+| **RF-DETR** | XL | 0.806 | 0.577 |
+| **RF-DETR** | 2XL | 0.815 | 0.598 |
+| **D-FINE** | M | 0.795 | 0.583 |
+| **D-FINE** | L | 0.783 | 0.574 |
+| **D-FINE** | XL | 0.783 | 0.575 |
+
+### Workstation 2
+
+| Architecture | Variant | mAP50 | mAP50-95 |
+|:---|:---:|:---:|:---:|
+| **YOLOv12** | M | 0.896 | 0.626 |
+| **YOLOv12** | L | 0.897 | 0.639 |
+| **YOLOv12** | XL | **0.899** | **0.635** |
+| **RF-DETR** | L | 0.806 | 0.576 |
+| **RF-DETR** | XL | 0.816 | 0.591 |
+| **RF-DETR** | 2XL | 0.826 | 0.607 |
+| **D-FINE** | M | 0.792 | 0.587 |
+| **D-FINE** | L | 0.788 | 0.581 |
+| **D-FINE** | XL | 0.793 | 0.590 |
