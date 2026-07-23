@@ -4,7 +4,7 @@ This repository contains the dataset preprocessing, training, and evaluation scr
 
 ## Dataset
 
-A custom dataset was created by combining images from two public benchmarks: DIOR and DOTA-v2.0.
+A custom **[dataset](https://mega.nz/file/TvxlVKZY#EYTy0WMJ7E_iaAh_DIGqXh2VgQLWutUm2iUjO5wdiaI)** was created by combining images from two public benchmarks: DIOR and DOTA-v2.0.
 
 - **Class Mapping:** Bounding boxes from the source datasets were standardized to Horizontal Bounding Boxes (HBB) across 6 target classes: Plane, Bridge, Airport, Harbor, Vehicle, and Ship. Small and large vehicle categories from the source datasets were merged into a single Vehicle class.
 - **Tiling:** Large satellite images were sliced into 800x800 pixel tiles with a 20% overlap.
