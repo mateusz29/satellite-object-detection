@@ -1,0 +1,4 @@
+[submodule "yolo-plugin"]
+	path = yolo-plugin
+	url = https://github.com/mateusz29/yolo-mod.git
+	branch = msc-different-classes
