@@ -49,3 +49,7 @@ Performance was evaluated on the test split using standard COCO mAP metrics.
 | **D-FINE** | M | 0.792 | 0.587 |
 | **D-FINE** | L | 0.788 | 0.581 |
 | **D-FINE** | XL | 0.793 | 0.590 |
+
+## YOLO Plugin
+
+The plugin code and its documentation are maintained in the `yolo-plugin` Git submodule. For information about the plugin, its usage, and implementation details, see the [`yolo-plugin`](./yolo-plugin) submodule.
