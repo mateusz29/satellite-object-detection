@@ -52,4 +52,4 @@ Performance was evaluated on the test split using standard COCO mAP metrics.
 
 ## YOLO Plugin
 
-The plugin code and its documentation are maintained in the `yolo-plugin` Git submodule. For information about the plugin, its usage, and implementation details, see the [`yolo-plugin`](./yolo-plugin) submodule.
+The plugin code and its documentation are maintained in the `yolo-plugin` Git submodule. For information about the plugin, its usage, and implementation details, see the [`yolo-plugin`](https://github.com/mateusz29/yolo-mod/tree/ff46797c451b340ede86bc7edc56da114dc9acb5) submodule.
